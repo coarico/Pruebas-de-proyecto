@@ -48,7 +48,7 @@ jobs:
           echo "- **Status**: ${{ steps.deploy.outputs.response }}" >> deployment-info.md
           
       - name: Upload deployment artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: deployment-info
           path: deployment-info.md
