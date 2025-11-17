@@ -55,7 +55,7 @@ cd Proyecto_Avanzada_Hotel
 ./gradlew clean build
 ```
 
-3. Ejecutar la aplicación:
+3. Ejecutar la aplicación: 
 ```bash
 ./gradlew bootRun
 ```
