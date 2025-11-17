@@ -1,0 +1,40 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.6'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'edu.espe'
+version = '0.0.1-SNAPSHOT'
+description = 'spring-lab'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	// Drivers de bases de datos
+	runtimeOnly 'com.mysql:mysql-connector-j'      // MySQL
+	runtimeOnly 'org.postgresql:postgresql'        // PostgreSQL (Render)
+	runtimeOnly 'com.h2database:h2:2.2.220'       // H2 (desarrollo local)
+
+	// Testing
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'com.h2database:h2:2.2.220'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

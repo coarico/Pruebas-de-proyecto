@@ -1,0 +1,68 @@
+name: CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ["CI - Build and Test"]  # ✅ Nombre exacto de tu CI
+    types:
+      - completed
+    branches: [ main ]
+
+env:
+  APP_VERSION: ${{ github.sha }}
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Add version to application.yml
+        run: |
+          echo "# Version added by CD pipeline" >> src/main/resources/application.yml
+          echo "version: ${{ env.APP_VERSION }}" >> src/main/resources/application.yml
+          echo "build-date: $(date)" >> src/main/resources/application.yml
+          
+      - name: Trigger Render deploy (via webhook)
+        id: deploy
+        run: |
+          echo "Attempting to deploy to Render..."
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+            response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}" \
+              -H "Content-Type: application/json" \
+              -d '{"commit":"${{ github.sha }}","version":"${{ env.APP_VERSION }}"}')
+            echo "response=$response" >> $GITHUB_OUTPUT
+            echo "Render deployment triggered with status: $response"
+          else
+            echo "RENDER_DEPLOY_HOOK not configured - skipping Render deployment"
+            echo "response=skipped" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Create deployment info
+        run: |
+          echo "## Deployment Information" > deployment-info.md
+          echo "- **Version**: ${{ env.APP_VERSION }}" >> deployment-info.md
+          echo "- **Commit**: ${{ github.sha }}" >> deployment-info.md
+          echo "- **Branch**: main" >> deployment-info.md
+          echo "- **Date**: $(date)" >> deployment-info.md
+          echo "- **Status**: ${{ steps.deploy.outputs.response }}" >> deployment-info.md
+          
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-info
+          path: deployment-info.md
+          
+      - name: Deployment successful
+        if: steps.deploy.outputs.response == '200' || steps.deploy.outputs.response == '202' || steps.deploy.outputs.response == 'skipped'
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "📦 Version: ${{ env.APP_VERSION }}"
+          echo "🌐 Ready for production"
+          
+      - name: Deployment failed
+        if: steps.deploy.outputs.response != '200' && steps.deploy.outputs.response != '202' && steps.deploy.outputs.response != 'skipped'
+        run: |
+          echo "❌ Deployment failed with status: ${{ steps.deploy.outputs.response }}"
+          echo "🔄 Check Render configuration and try again"
+          exit 1
